@@ -19,7 +19,7 @@ import (
 const (
 	appid = ""	// Bing API App ID
 	query_uri = "http://api.bing.net/json.aspx"
-	dir = "./data2/"
+	dir = "./data/"
 )
 
 
@@ -114,7 +114,6 @@ func main() {
 		if err == nil { break; }
 		json.Unmarshal(line, &sr);
 		
-		q := make(chan int);
 		for i := 0; i < len(sr.SearchResponse.Image.Results); i++ {
 			result := sr.SearchResponse.Image.Results[i];
 			if regexp.MustCompile(".jpg$").FindString(result.MediaUrl) == "" {
@@ -128,20 +127,14 @@ func main() {
 			if _, err := os.Stat(filepath); err == nil { continue; }
 			fmt.Printf("%d : Download... %s\n", download_count, result.MediaUrl);
 			
-			go func() {
-				q <- 1;
-				res, err := http.Get(result.MediaUrl);
-				if err != nil { runtime.Goexit(); };
-				data, err := ioutil.ReadAll(res.Body);
-				if err != nil { runtime.Goexit(); };
-				if regexp.MustCompile("^image").FindString(http.DetectContentType(data)) != "" {
-					ioutil.WriteFile(filepath, data, 0666);
-				}
-			}();
-			<- q;
+			res, err := http.Get(result.MediaUrl);
+			if err != nil { runtime.Goexit(); };
+			data, err := ioutil.ReadAll(res.Body);
+			if err != nil { runtime.Goexit(); };
+			if regexp.MustCompile("^image").FindString(http.DetectContentType(data)) != "" {
+				ioutil.WriteFile(filepath, data, 0666);
+			}
 		}
-		
-		close(q);
 		page_count++;
 	}
 }
